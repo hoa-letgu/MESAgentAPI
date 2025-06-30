@@ -22,32 +22,44 @@ app.use(express.json());
 
 let mesReports = [];
 
-/** Ghi DB qua Sequelize */
 async function saveToDB(report) {
   try {
     const detailTitles = Array.isArray(report.detailProgress)
       ? report.detailProgress.map(item => item.title).join(' | ')
       : report.detailProgress;
 
-    // Chuyển dateProgress về dạng 'YYYY-MM-DD HH:mm:ss'
+    // Chuyển định dạng ngày về chuẩn MySQL
     const parsedDate = dayjs(report.dateProgress, 'DD/MM/YYYY hh:mm:ss A');
-    const formattedDate = parsedDate.isValid() ? parsedDate.format('YYYY-MM-DD HH:mm:ss A') : null;
-
-    if (!formattedDate) {
-      throw new Error('🛑 Ngày không hợp lệ, không thể lưu vào DB.');
+    if (!parsedDate.isValid()) {
+      throw new Error('🛑 Ngày không hợp lệ: ' + report.dateProgress);
     }
+    const formattedDate = parsedDate.format('YYYY-MM-DD HH:mm:ss');
 
-    await Agents.create({
-      user: report.info.user,
-      ip: report.info.ip,
-      numMES: report.numMES,
-      detailProgress: detailTitles,
-      dateProgress: formattedDate
-    });
+    // Kiểm tra IP đã tồn tại chưa
+    const existingAgent = await Agents.findOne({ where: { ip: report.info.ip } });
 
-    console.log("✅ Data saved successfully.");
+    if (existingAgent) {
+      // Nếu có, update
+      await existingAgent.update({
+        user: report.info.user,
+        numMES: report.numMES,
+        detailProgress: detailTitles,
+        dateProgress: formattedDate
+      });
+      console.log("🔄 Cập nhật thành công IP:", report.info.ip);
+    } else {
+      // Nếu chưa có, insert mới
+      await Agents.create({
+        user: report.info.user,
+        ip: report.info.ip,
+        numMES: report.numMES,
+        detailProgress: detailTitles,
+        dateProgress: formattedDate
+      });
+      console.log("✅ Thêm mới thành công IP:", report.info.ip);
+    }
   } catch (err) {
-    console.error('❌ Sequelize error:', err);
+    console.error('❌ Sequelize error:', err.message || err);
   }
 }
 
