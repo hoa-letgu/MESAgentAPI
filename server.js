@@ -47,7 +47,7 @@ async function saveToDB(report) {
         ip: report.info.ip,
         numMES: report.numMES,
         detailProgress: detailTitles,
-        dateProgress: formattedDate
+        dateProgress: report.dateProgress
       });
       console.log("✅ Thêm mới thành công IP:", report.info.ip);
     }
