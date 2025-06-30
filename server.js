@@ -2,6 +2,7 @@ const express = require('express');
 const http = require('http');
 const cors = require('cors');
 const { Server } = require('socket.io');
+const cron = require('node-cron');
 
 const sequelize = require('./db');
 const Agents = require('./models/agents');
@@ -55,7 +56,6 @@ async function saveToDB(report) {
     console.error('❌ Sequelize error:', err.message || err);
   }
 }
-
 
 
 /** API & Socket handler */
@@ -199,6 +199,26 @@ app.get('/api/force-all', (req, res) => {
   io.emit('ping-client', 'force-report');
   res.send('📡 Đã gửi force-report tới tất cả agents');
 });
+
+cron.schedule(
+  '0 20 * * *',                          // 20:00 hằng ngày
+  async () => {
+    try {
+      // reset numMES về 0 cho mọi agent
+      const [affected] = await Agents.update(
+        { numMES: 0 },
+        { where: {} }
+      );
+
+      console.log(
+        `🔄 [${dayjs().format('YYYY-MM-DD HH:mm:ss')}] Đặt lại numMES = 0 cho ${affected} dòng`
+      );
+    } catch (err) {
+      console.error('❌ Cron update lỗi:', err);
+    }
+  },
+  { timezone: 'Asia/Ho_Chi_Minh' }       // đúng giờ VN
+);
 
 /** Khởi chạy */
 (async () => {

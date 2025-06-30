@@ -16,6 +16,7 @@
     "dayjs": "^1.11.13",
     "express": "^5.1.0",
     "mysql2": "^3.14.1",
+    "node-cron": "^4.1.1",
     "sequelize": "^6.37.7",
     "socket.io": "^4.8.1",
     "socket.io-client": "^4.8.1"
