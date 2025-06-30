@@ -13,7 +13,7 @@ const Plants = sequelize.define('Plants', {
     allowNull: false
   },
   plantName: {
-    type: DataTypes.JSON,
+    type: DataTypes.STRING(100),
     allowNull: false
   }
 }, {

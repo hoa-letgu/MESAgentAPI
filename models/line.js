@@ -13,11 +13,11 @@ const Lines = sequelize.define('Lines', {
         allowNull: false
     },
     lineName: {
-        type: DataTypes.JSON,
+        type: DataTypes.STRING(100),
         allowNull: false
     },
     plantId: {
-        type: DataTypes.STRING,
+        type: DataTypes.INTEGER,
         allowNull: false
     }
 }, {

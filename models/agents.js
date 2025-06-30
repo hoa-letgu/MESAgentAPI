@@ -24,17 +24,17 @@ const Agents = sequelize.define('Agents', {
         comment: 'Số lượng báo cáo MES'
     },
     detailProgress: {
-        type: DataTypes.JSON,
+        type: DataTypes.STRING(500),
         allowNull: false,
         comment: 'Chi tiết tiến độ (danh sách các báo cáo con)'
     },
     dateProgress: {
-        type: DataTypes.STRING,
+        type: DataTypes.DATE,
         allowNull: false,
         comment: 'Thời gian tiến độ'
     },
     lineId: {
-        type: DataTypes.STRING,
+        type: DataTypes.INTEGER,
         allowNull: false,
         comment: ''
     }
