@@ -75,7 +75,125 @@ io.on('connection', (socket) => {
   });
 });
 
-app.get('/api/mes-agent-report', (req, res) => res.json(mesReports));
+app.get('/api/mes-agent-report-plant-A', async (req, res) => {
+  try {
+    const [results] = await sequelize.query(`
+      SELECT
+        c.plant_name,
+        b.line_name,
+        a.\`user\`,
+        a.ip,
+        a.num_m_e_s,
+        a.detail_progress,
+        a.date_progress
+      FROM agents AS a
+      LEFT JOIN \`lines\`  AS b ON b.line_code = a.line_id
+      LEFT JOIN plants     AS c ON c.plant_code = b.plant_id
+      WHERE c.plant_name = 'Plant A'
+    `);
+
+    res.json(results);
+  } catch (err) {
+    console.error('❌ Query lỗi:', err);
+    res.status(500).json({ message: 'Lỗi truy vấn' });
+  }
+});
+
+app.get('/api/mes-agent-report-plant-C', async (req, res) => {
+  try {
+    const [results] = await sequelize.query(`
+      SELECT
+        c.plant_name,
+        b.line_name,
+        a.\`user\`,
+        a.ip,
+        a.num_m_e_s,
+        a.detail_progress,
+        a.date_progress
+      FROM agents AS a
+      LEFT JOIN \`lines\`  AS b ON b.line_code = a.line_id
+      LEFT JOIN plants     AS c ON c.plant_code = b.plant_id
+      WHERE c.plant_name = 'Plant C'
+    `);
+
+    res.json(results);
+  } catch (err) {
+    console.error('❌ Query lỗi:', err);
+    res.status(500).json({ message: 'Lỗi truy vấn' });
+  }
+});
+
+app.get('/api/mes-agent-report-plant-D', async (req, res) => {
+  try {
+    const [results] = await sequelize.query(`
+      SELECT
+        c.plant_name,
+        b.line_name,
+        a.\`user\`,
+        a.ip,
+        a.num_m_e_s,
+        a.detail_progress,
+        a.date_progress
+      FROM agents AS a
+      LEFT JOIN \`lines\`  AS b ON b.line_code = a.line_id
+      LEFT JOIN plants     AS c ON c.plant_code = b.plant_id
+      WHERE c.plant_name = 'Plant D'
+    `);
+
+    res.json(results);
+  } catch (err) {
+    console.error('❌ Query lỗi:', err);
+    res.status(500).json({ message: 'Lỗi truy vấn' });
+  }
+});
+
+app.get('/api/mes-agent-report-plant-E', async (req, res) => {
+  try {
+    const [results] = await sequelize.query(`
+      SELECT
+        c.plant_name,
+        b.line_name,
+        a.\`user\`,
+        a.ip,
+        a.num_m_e_s,
+        a.detail_progress,
+        a.date_progress
+      FROM agents AS a
+      LEFT JOIN \`lines\`  AS b ON b.line_code = a.line_id
+      LEFT JOIN plants     AS c ON c.plant_code = b.plant_id
+      WHERE c.plant_name = 'Plant E'
+    `);
+
+    res.json(results);
+  } catch (err) {
+    console.error('❌ Query lỗi:', err);
+    res.status(500).json({ message: 'Lỗi truy vấn' });
+  }
+});
+
+app.get('/api/mes-agent-report-plant-F', async (req, res) => {
+  try {
+    const [results] = await sequelize.query(`
+      SELECT
+        c.plant_name,
+        b.line_name,
+        a.\`user\`,
+        a.ip,
+        a.num_m_e_s,
+        a.detail_progress,
+        a.date_progress
+      FROM agents AS a
+      LEFT JOIN \`lines\`  AS b ON b.line_code = a.line_id
+      LEFT JOIN plants     AS c ON c.plant_code = b.plant_id
+      WHERE c.plant_name = 'Plant F'
+    `);
+
+    res.json(results);
+  } catch (err) {
+    console.error('❌ Query lỗi:', err);
+    res.status(500).json({ message: 'Lỗi truy vấn' });
+  }
+});
 
 app.get('/api/force-all', (req, res) => {
   io.emit('ping-client', 'force-report');
