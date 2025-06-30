@@ -17,7 +17,7 @@ const Lines = sequelize.define('Lines', {
         allowNull: false
     },
     plantId: {
-        type: DataTypes.INTEGER,
+        type: DataTypes.STRING,
         allowNull: true
     }
 }, {

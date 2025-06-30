@@ -28,13 +28,6 @@ async function saveToDB(report) {
       ? report.detailProgress.map(item => item.title).join(' | ')
       : report.detailProgress;
 
-    // Chuyển định dạng ngày về chuẩn MySQL
-    const parsedDate = dayjs(report.dateProgress, 'DD/MM/YYYY hh:mm:ss A');
-    if (!parsedDate.isValid()) {
-      throw new Error('🛑 Ngày không hợp lệ: ' + report.dateProgress);
-    }
-    const formattedDate = parsedDate.format('YYYY-MM-DD HH:mm:ss');
-
     // Kiểm tra IP đã tồn tại chưa
     const existingAgent = await Agents.findOne({ where: { ip: report.info.ip } });
 
@@ -44,7 +37,7 @@ async function saveToDB(report) {
         user: report.info.user,
         numMES: report.numMES,
         detailProgress: detailTitles,
-        dateProgress: formattedDate
+        dateProgress: report.dateProgress
       });
       console.log("🔄 Cập nhật thành công IP:", report.info.ip);
     } else {

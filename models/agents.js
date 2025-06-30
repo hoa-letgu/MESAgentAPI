@@ -1,7 +1,6 @@
 // src/models/MesReport.js
 const { DataTypes } = require('sequelize');
 const sequelize = require('../db');
-
 const Agents = sequelize.define('Agents', {
     id: {
         type: DataTypes.BIGINT.UNSIGNED,
@@ -29,12 +28,12 @@ const Agents = sequelize.define('Agents', {
         comment: 'Chi tiết tiến độ (danh sách các báo cáo con)'
     },
     dateProgress: {
-        type: DataTypes.DATE,
+        type: DataTypes.STRING(150),
         allowNull: false,
         comment: 'Thời gian tiến độ'
     },
     lineId: {
-        type: DataTypes.INTEGER,
+        type: DataTypes.STRING,
         allowNull: true,
         comment: ''
     }
