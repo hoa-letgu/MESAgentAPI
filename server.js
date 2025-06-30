@@ -7,7 +7,9 @@ const sequelize = require('./db');
 const Agents = require('./models/agents');
 const Plants = require('./models/plants');
 const Lines = require('./models/line');
-
+const dayjs = require('dayjs');
+const customParseFormat = require('dayjs/plugin/customParseFormat');
+dayjs.extend(customParseFormat);
 const app = express();
 const server = http.createServer(app);
 
@@ -27,12 +29,20 @@ async function saveToDB(report) {
       ? report.detailProgress.map(item => item.title).join(' | ')
       : report.detailProgress;
 
+    // Chuyển dateProgress về dạng 'YYYY-MM-DD HH:mm:ss'
+    const parsedDate = dayjs(report.dateProgress, 'DD/MM/YYYY hh:mm:ss A');
+    const formattedDate = parsedDate.isValid() ? parsedDate.format('YYYY-MM-DD HH:mm:ss A') : null;
+
+    if (!formattedDate) {
+      throw new Error('🛑 Ngày không hợp lệ, không thể lưu vào DB.');
+    }
+
     await Agents.create({
       user: report.info.user,
       ip: report.info.ip,
       numMES: report.numMES,
       detailProgress: detailTitles,
-      dateProgress: report.dateProgress
+      dateProgress: formattedDate
     });
 
     console.log("✅ Data saved successfully.");
