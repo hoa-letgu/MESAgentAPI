@@ -18,7 +18,7 @@ const Lines = sequelize.define('Lines', {
     },
     plantId: {
         type: DataTypes.INTEGER,
-        allowNull: false
+        allowNull: true
     }
 }, {
     tableName: 'lines', // tên bảng cố định

@@ -35,7 +35,7 @@ const Agents = sequelize.define('Agents', {
     },
     lineId: {
         type: DataTypes.INTEGER,
-        allowNull: false,
+        allowNull: true,
         comment: ''
     }
 }, {
