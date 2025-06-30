@@ -23,18 +23,24 @@ let mesReports = [];
 /** Ghi DB qua Sequelize */
 async function saveToDB(report) {
   try {
+    const detailTitles = Array.isArray(report.detailProgress)
+      ? report.detailProgress.map(item => item.title).join(' | ')
+      : report.detailProgress;
+
     await Agents.create({
       user: report.info.user,
       ip: report.info.ip,
       numMES: report.numMES,
-      detailProgress: JSON.stringify(report.detailProgress), // nếu lưu dạng chuỗi JSON
+      detailProgress: detailTitles,
       dateProgress: report.dateProgress
     });
+
     console.log("✅ Data saved successfully.");
   } catch (err) {
     console.error('❌ Sequelize error:', err);
   }
 }
+
 
 
 /** API & Socket handler */
