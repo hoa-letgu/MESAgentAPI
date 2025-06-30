@@ -1,0 +1,46 @@
+// src/models/MesReport.js
+const { DataTypes } = require('sequelize');
+const sequelize = require('../db');
+
+const Agents = sequelize.define('Agents', {
+    id: {
+        type: DataTypes.BIGINT.UNSIGNED,
+        autoIncrement: true,
+        primaryKey: true,
+    },
+    user: {
+        type: DataTypes.STRING(100),
+        allowNull: false,
+        comment: 'Tên người dùng'
+    },
+    ip: {
+        type: DataTypes.STRING(45),
+        allowNull: false,
+        comment: 'Địa chỉ IP'
+    },
+    numMES: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        comment: 'Số lượng báo cáo MES'
+    },
+    detailProgress: {
+        type: DataTypes.JSON,
+        allowNull: false,
+        comment: 'Chi tiết tiến độ (danh sách các báo cáo con)'
+    },
+    dateProgress: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        comment: 'Thời gian tiến độ'
+    },
+    lineId: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        comment: ''
+    }
+}, {
+    tableName: 'agents',
+    underscored: true,
+});
+
+module.exports = Agents;

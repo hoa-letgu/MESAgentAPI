@@ -1,12 +1,14 @@
-const express  = require('express');
-const http     = require('http');
-const cors     = require('cors');
+const express = require('express');
+const http = require('http');
+const cors = require('cors');
 const { Server } = require('socket.io');
 
-const sequelize  = require('./db');
-const Plants  = require('./models/plants');
+const sequelize = require('./db');
+const Agents = require('./models/agents');
+const Plants = require('./models/plants');
+const Lines = require('./models/line');
 
-const app    = express();
+const app = express();
 const server = http.createServer(app);
 
 const io = new Server(server, {
@@ -21,14 +23,19 @@ let mesReports = [];
 /** Ghi DB qua Sequelize */
 async function saveToDB(report) {
   try {
-    await Plants.create({
-      plantCode : report.plantCode  || 'unknown',
-      plantName  : report.plantName || 'unknown'
+    await Agents.create({
+      user: report.info.user,
+      ip: report.info.ip,
+      numMES: report.numMES,
+      detailProgress: JSON.stringify(report.detailProgress), // nếu lưu dạng chuỗi JSON
+      dateProgress: report.dateProgress
     });
+    console.log("✅ Data saved successfully.");
   } catch (err) {
     console.error('❌ Sequelize error:', err);
   }
 }
+
 
 /** API & Socket handler */
 app.post('/api/mes-agent-report', async (req, res) => {
