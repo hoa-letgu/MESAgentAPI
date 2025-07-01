@@ -2,46 +2,47 @@
 // ---------------------------------------------------------------
 // 2025-07-01 – Refactored: dynamic plant queries, polling broadcast,
 // single connection listener, cron reset 20:00, dotenv config, etc.
-const express  = require('express');
-const http     = require('http');
-const cors     = require('cors');
+const express = require('express');
+const http = require('http');
+const cors = require('cors');
 const { Server } = require('socket.io');
-const cron     = require('node-cron');
-const dayjs    = require('dayjs');
+const cron = require('node-cron');
+const dayjs = require('dayjs');
 
 const sequelize = require('./db');
-const Agents    = require('./models/agents');
-const Plants    = require('./models/plants');
-const Lines     = require('./models/line');
+const Agents = require('./models/agents');
+const Plants = require('./models/plants');
+const Lines = require('./models/line');
 
 // -----------------------------------------------------------------------------
 // Constants & helpers
 // -----------------------------------------------------------------------------
-const PORT        = process.env.PORT || 3000;
-const POLL_MS     = Number(process.env.PLANT_POLL_MS) || 5_000;   // 5s default
-const TZ          = 'Asia/Ho_Chi_Minh';
-const PLANTS      = [
-  'Plant A', 
-  'Plant C', 
-  'Plant D', 
-  'Plant E', 
-  'Plant F', 
-  'Office', 
-  'Plant I', 
-  'Plant N', 
-  'Plant O 1F', 
-  'Plant O 2F', 
-  'Plant P', 
+const PORT = process.env.PORT || 3000;
+const POLL_MS = Number(process.env.PLANT_POLL_MS) || 5_000;   // 5s default
+const TZ = 'Asia/Ho_Chi_Minh';
+const PLANTS = [
+  'Plant A',
+  'Plant C',
+  'Plant D',
+  'Plant E',
+  'Plant F',
+  'Office',
+  'Plant I',
+  'Plant N',
+  'Plant O 1F',
+  'Plant O 2F',
+  'Plant P',
   'Plant Q'
 ];
 
-const app    = express();
+const app = express();
 const server = http.createServer(app);
-const io     = new Server(server, { cors: { origin: '*', methods: ['GET', 'POST'] } });
-
+const io = new Server(server, { cors: { origin: '*', methods: ['GET', 'POST'] } });
+const path = require('path');
+const AGENT_CODE_DIR = path.join(__dirname, 'agent-code');
 app.use(cors());
 app.use(express.json());
-
+app.use('/download', express.static(AGENT_CODE_DIR));
 //------------------------------------------------------------------
 // Utils
 //------------------------------------------------------------------
@@ -75,11 +76,11 @@ async function saveToDB(report) {
       : report.detailProgress;
 
     const values = {
-      user:           report.info.user,
-      ip:             report.info.ip,
-      numMES:         report.numMES,
+      user: report.info.user,
+      ip: report.info.ip,
+      numMES: report.numMES,
       detailProgress: detailTitles,
-      dateProgress:   report.dateProgress,
+      dateProgress: report.dateProgress,
     };
 
     const [agent, created] = await Agents.findOrCreate({ where: { ip: values.ip }, defaults: values });
