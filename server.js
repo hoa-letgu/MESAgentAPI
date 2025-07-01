@@ -20,7 +20,20 @@ const Lines     = require('./models/line');
 const PORT        = process.env.PORT || 3000;
 const POLL_MS     = Number(process.env.PLANT_POLL_MS) || 5_000;   // 5s default
 const TZ          = 'Asia/Ho_Chi_Minh';
-const PLANTS      = ['Plant A', 'Plant C', 'Plant D', 'Plant E', 'Plant F'];
+const PLANTS      = [
+  'Plant A', 
+  'Plant C', 
+  'Plant D', 
+  'Plant E', 
+  'Plant F', 
+  'Office', 
+  'Plant I', 
+  'Plant N', 
+  'Plant O 1F', 
+  'Plant O 2F', 
+  'Plant P', 
+  'Plant Q'
+];
 
 const app    = express();
 const server = http.createServer(app);
