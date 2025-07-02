@@ -8,18 +8,22 @@ const Lines = sequelize.define('Lines', {
         autoIncrement: true,
         primaryKey: true
     },
-    lineCode: {
+    line_code: {
         type: DataTypes.STRING(100),
         allowNull: false
     },
-    lineName: {
+    line_name: {
         type: DataTypes.STRING(100),
         allowNull: false
     },
-    plantId: {
+    plant_id: {
         type: DataTypes.STRING,
         allowNull: true
-    }
+    },
+    ip: {
+        type: DataTypes.STRING(100),
+        allowNull: true
+    },
 }, {
     tableName: 'lines', // tên bảng cố định
     underscored: true         // cột => snake_case

@@ -8,11 +8,11 @@ const Plants = sequelize.define('Plants', {
     autoIncrement: true,
     primaryKey: true
   },
-  plantCode: {
+  plant_code: {
     type: DataTypes.STRING(100),
     allowNull: false
   },
-  plantName: {
+  plant_name: {
     type: DataTypes.STRING(100),
     allowNull: false
   }

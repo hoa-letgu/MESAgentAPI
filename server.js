@@ -43,6 +43,75 @@ const AGENT_CODE_DIR = path.join(__dirname, 'agent-code');
 app.use(cors());
 app.use(express.json());
 app.use('/download', express.static(AGENT_CODE_DIR));
+app.get('/update', (req, res) => {
+  const zipPath = path.join(__dirname, 'agent-code', 'update.zip');
+  res.download(zipPath);
+});
+app.post('/addLines2', async (req, res) => {
+  const { plant_id, line, ip } = req.body;
+  const line_code = line;
+  const line_name = line;
+  if (!line || !ip) {
+    return res.status(400).json({ error: 'Thiếu factory, line hoặc ip' });
+  }
+
+
+  try {
+    const existing = await Lines.findOne({
+      where: { plant_id, line_code, ip }
+    });
+
+    if (existing) {
+      return res.status(200).json({ message: 'Dữ liệu đã tồn tại', exists: true });
+    }
+
+    const added = await Lines.create({ plant_id, line_code, line_name, ip });
+    res.status(201).json({ message: 'Đã thêm thành công', data: added, exists: false });
+
+  } catch (err) {
+    console.error('Lỗi khi thêm line:', err);
+    res.status(500).json({ error: 'Lỗi máy chủ' });
+  }
+});
+
+app.post('/addLines', async (req, res) => {
+  let { plant_id, line, ip } = req.body;
+  plant_id = plant_id?.toString().toUpperCase() || '';
+  line = line?.toString().toUpperCase() || '';
+  ip = ip?.toString().toUpperCase() || '';
+
+  if (!plant_id || !line || !ip) {
+    return res.status(400).json({ error: 'Thiếu factory, line hoặc ip' });
+  }
+  const prefixes = ['4001', '4002', '4003', '4004', '4005', '4011', '4021', '4031'];
+  // Tách line_code từ line (giả định bắt đầu bằng số)
+  let line_code = line;
+  for (const prefix of prefixes) {
+    if (line.startsWith(prefix)) {
+      line_code = line.slice(prefix.length); // cắt phần sau prefix
+      break;
+    }
+  }
+  const line_name = line;
+  try {
+    const existing = await Lines.findOne({
+      where: { plant_id, line_code, line_name, ip }
+    });
+
+    if (existing) {
+      return res.status(200).json({ message: 'Dữ liệu đã tồn tại', exists: true });
+    }
+
+    const added = await Lines.create({ plant_id, line_code, line_name, ip });
+    res.status(201).json({ message: 'Đã thêm thành công', data: added, exists: false });
+
+  } catch (err) {
+    console.error('Lỗi khi thêm line:', err);
+    res.status(500).json({ error: 'Lỗi máy chủ' });
+  }
+});
+
+
 //------------------------------------------------------------------
 // Utils
 //------------------------------------------------------------------
