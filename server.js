@@ -17,7 +17,7 @@ const Lines = require('./models/line');
 // -----------------------------------------------------------------------------
 // Constants & helpers
 // -----------------------------------------------------------------------------
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 6677;
 const POLL_MS = Number(process.env.PLANT_POLL_MS) || 5_000;   // 5s default
 const TZ = 'Asia/Ho_Chi_Minh';
 const PLANTS = [
@@ -99,15 +99,15 @@ app.post('/addLines', async (req, res) => {
     });
 
     if (existing) {
-      return res.status(200).json({ message: 'Dữ liệu đã tồn tại', exists: true });
+      return res.status(200).json({ message: 'NO', exists: true });
     }
 
     const added = await Lines.create({ plant_id, line_code, line_name, ip });
-    res.status(201).json({ message: 'Đã thêm thành công', data: added, exists: false });
+    res.status(201).json({ message: 'OK', data: added, exists: false });
 
   } catch (err) {
     console.error('Lỗi khi thêm line:', err);
-    res.status(500).json({ error: 'Lỗi máy chủ' });
+    res.status(500).json({ error: 'NO!' });
   }
 });
 
@@ -120,12 +120,12 @@ function sqlForPlant(plantName) {
             c.plant_name,
             b.line_name,
             a.\`user\`,
-            a.ip,
+            b.ip,
             a.num_m_e_s,
             a.detail_progress,
             a.date_progress
           FROM agents  AS a
-          LEFT JOIN \`lines\`  AS b ON b.line_code = a.line_id
+          LEFT JOIN \`lines\`  AS b ON b.ip = a.ip
           LEFT JOIN plants     AS c ON c.plant_code = b.plant_id
           WHERE c.plant_name = :plantName`;
 }

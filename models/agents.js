@@ -31,11 +31,6 @@ const Agents = sequelize.define('Agents', {
         type: DataTypes.STRING(150),
         allowNull: false,
         comment: 'Thời gian tiến độ'
-    },
-    lineId: {
-        type: DataTypes.STRING,
-        allowNull: true,
-        comment: ''
     }
 }, {
     tableName: 'agents',
