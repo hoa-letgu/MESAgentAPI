@@ -52,9 +52,8 @@ app.post('/addLines2', async (req, res) => {
   const line_code = line;
   const line_name = line;
   if (!line || !ip) {
-    return res.status(400).json({ error: 'Thiếu factory, line hoặc ip' });
+    return res.status(400).json({ error: 'NO' });
   }
-
 
   try {
     const existing = await Lines.findOne({
@@ -62,15 +61,15 @@ app.post('/addLines2', async (req, res) => {
     });
 
     if (existing) {
-      return res.status(200).json({ message: 'Dữ liệu đã tồn tại', exists: true });
+      return res.status(200).json({ message: 'OK', exists: true });
     }
 
     const added = await Lines.create({ plant_id, line_code, line_name, ip });
-    res.status(201).json({ message: 'Đã thêm thành công', data: added, exists: false });
+    res.status(201).json({ message: 'OK!', data: added, exists: false });
 
   } catch (err) {
     console.error('Lỗi khi thêm line:', err);
-    res.status(500).json({ error: 'Lỗi máy chủ' });
+    res.status(500).json({ error: 'NO' });
   }
 });
 
@@ -81,7 +80,7 @@ app.post('/addLines', async (req, res) => {
   ip = ip?.toString().toUpperCase() || '';
 
   if (!plant_id || !line || !ip) {
-    return res.status(400).json({ error: 'Thiếu factory, line hoặc ip' });
+    return res.status(400).json({ error: 'NO' });
   }
   const prefixes = ['4001', '4002', '4003', '4004', '4005', '4011', '4021', '4031'];
   // Tách line_code từ line (giả định bắt đầu bằng số)
