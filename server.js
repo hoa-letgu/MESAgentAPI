@@ -47,6 +47,10 @@ app.get('/update', (req, res) => {
   const zipPath = path.join(__dirname, 'agent-code', 'update.zip');
   res.download(zipPath);
 });
+app.get('/update_src', (req, res) => {
+  const zipPath = path.join(__dirname, 'agent-code', 'update_src.zip');
+  res.download(zipPath);
+});
 app.post('/addLines2', async (req, res) => {
   const { plant_id, line, ip } = req.body;
   const line_code = line;
