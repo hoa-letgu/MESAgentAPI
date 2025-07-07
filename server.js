@@ -169,13 +169,20 @@ function getSocketIdFromIP(ip) {
 //------------------------------------------------------------------
 async function saveToDB(report) {
   try {
+    const ip = report.info.ip?.trim();
+
+    // ❌ Nếu IP không hợp lệ thì bỏ qua
+    if (!ip || ip === "Unknown") {
+      //console.warn("⚠️ Bỏ qua vì IP là Unknown hoặc rỗng");
+      return;
+    }
     const detailTitles = Array.isArray(report.detailProgress)
       ? report.detailProgress.map((i) => i.title).join(' | ')
       : report.detailProgress;
 
     const values = {
       user: report.info.user?.trim() || '',
-      ip: report.info.ip?.trim() || '',
+      ip: ip,
       userCodeMes: report.info.usercode?.trim() || '',
       numMES: Number(report.numMES) || 0,
       detailProgress: detailTitles?.trim() || '',
@@ -247,7 +254,7 @@ io.on('connection', (socket) => {
   socket.on('mes-report', async (data) => {
     try {
       //console.log(data)
-      const ip = data?.info?.ip || 'unknown';
+      const ip = data?.info?.ip || 'Unknown';
       clientMap[socket.id] = ip;
       await saveToDB(data);
       io.emit('mes-report', data);      // broadcast raw report if UI cần
