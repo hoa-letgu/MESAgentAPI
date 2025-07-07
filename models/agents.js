@@ -15,6 +15,7 @@ const Agents = sequelize.define('Agents', {
     ip: {
         type: DataTypes.STRING(45),
         allowNull: false,
+        unique: true,
         comment: 'Địa chỉ IP'
     },
     numMES: {
@@ -24,13 +25,18 @@ const Agents = sequelize.define('Agents', {
     },
     detailProgress: {
         type: DataTypes.STRING(500),
-        allowNull: false,
+        allowNull: true,
         comment: 'Chi tiết tiến độ (danh sách các báo cáo con)'
     },
     dateProgress: {
         type: DataTypes.STRING(150),
-        allowNull: false,
+        allowNull: true,
         comment: 'Thời gian tiến độ'
+    },
+    userCodeMes: {
+        type: DataTypes.STRING(100),
+        allowNull: true,
+        comment: 'Ghi chú thông tin user MES',
     }
 }, {
     tableName: 'agents',

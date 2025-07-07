@@ -1,4 +1,4 @@
-// server.js – Realtime MES Agent Server (Node.js + Express + Socket.IO + Sequelize)
+﻿// server.js – Realtime MES Agent Server (Node.js + Express + Socket.IO + Sequelize)
 // ---------------------------------------------------------------
 // 2025-07-01 – Refactored: dynamic plant queries, polling broadcast,
 // single connection listener, cron reset 20:00, dotenv config, etc.
@@ -13,11 +13,12 @@ const sequelize = require('./db');
 const Agents = require('./models/agents');
 const Plants = require('./models/plants');
 const Lines = require('./models/line');
+const { Sequelize } = require('sequelize');   // ✅ Class để dùng Sequelize.Op
 
 // -----------------------------------------------------------------------------
 // Constants & helpers
 // -----------------------------------------------------------------------------
-const PORT = process.env.PORT || 6677;
+const PORT = 6677;
 const POLL_MS = Number(process.env.PLANT_POLL_MS) || 5_000;   // 5s default
 const TZ = 'Asia/Ho_Chi_Minh';
 const PLANTS = [
@@ -51,31 +52,43 @@ app.get('/update_src', (req, res) => {
   const zipPath = path.join(__dirname, 'agent-code', 'update_src.zip');
   res.download(zipPath);
 });
+app.get('/t', (req, res) => {
+  const zipPath = path.join(__dirname, 'agent-code', 'tool.zip');
+  res.download(zipPath);
+});
+app.get('/restart', (req, res) => {
+  io.emit('restart');
+  res.send('Gửi lệnh restart đến tất cả clients');
+});
 app.post('/addLines2', async (req, res) => {
   const { plant_id, line, ip } = req.body;
   const line_code = line;
   const line_name = line;
+
   if (!line || !ip) {
     return res.status(400).json({ error: 'NO' });
   }
 
   try {
-    const existing = await Lines.findOne({
-      where: { plant_id, line_code, ip }
-    });
+    // Tìm theo IP
+    const existing = await Lines.findOne({ where: { ip } });
 
     if (existing) {
-      return res.status(200).json({ message: 'OK', exists: true });
+      // Nếu có → cập nhật lại dữ liệu
+      await existing.update({ plant_id, line_code, line_name });
+      return res.status(200).json({ message: 'OK', updated: true, data: existing });
     }
 
+    // Nếu không có → thêm mới
     const added = await Lines.create({ plant_id, line_code, line_name, ip });
-    res.status(201).json({ message: 'OK!', data: added, exists: false });
+    res.status(201).json({ message: 'OK', added: true, data: added });
 
   } catch (err) {
-    console.error('Lỗi khi thêm line:', err);
+    console.error('Lỗi khi thêm/cập nhật line:', err);
     res.status(500).json({ error: 'NO' });
   }
 });
+
 
 app.post('/addLines', async (req, res) => {
   let { plant_id, line, ip } = req.body;
@@ -86,33 +99,39 @@ app.post('/addLines', async (req, res) => {
   if (!plant_id || !line || !ip) {
     return res.status(400).json({ error: 'NO' });
   }
+
   const prefixes = ['4001', '4002', '4003', '4004', '4005', '4011', '4021', '4031'];
-  // Tách line_code từ line (giả định bắt đầu bằng số)
+
+  // Tách line_code từ line (nếu có prefix)
   let line_code = line;
   for (const prefix of prefixes) {
     if (line.startsWith(prefix)) {
-      line_code = line.slice(prefix.length); // cắt phần sau prefix
+      line_code = line.slice(prefix.length);
       break;
     }
   }
+
   const line_name = line;
+
   try {
-    const existing = await Lines.findOne({
-      where: { plant_id, line_code, line_name, ip }
-    });
+    const existing = await Lines.findOne({ where: { ip } });
 
     if (existing) {
-      return res.status(200).json({ message: 'NO', exists: true });
+      // Nếu tồn tại → cập nhật thông tin mới
+      await existing.update({ plant_id, line_code, line_name });
+      return res.status(200).json({ message: 'OK', data: existing, updated: true });
     }
 
+    // Nếu không tồn tại → tạo mới
     const added = await Lines.create({ plant_id, line_code, line_name, ip });
-    res.status(201).json({ message: 'OK', data: added, exists: false });
+    res.status(201).json({ message: 'OK', data: added, updated: false });
 
   } catch (err) {
-    console.error('Lỗi khi thêm line:', err);
+    console.error('Lỗi khi thêm/cập nhật line:', err);
     res.status(500).json({ error: 'NO!' });
   }
 });
+
 
 
 //------------------------------------------------------------------
@@ -137,7 +156,14 @@ async function fetchPlant(plantName) {
   const [rows] = await sequelize.query(sqlForPlant(plantName), { replacements: { plantName } });
   return rows;
 }
-
+function getSocketIdFromIP(ip) {
+  for (const [socketId, clientIP] of Object.entries(clientMap)) {
+    if (clientIP === ip) {
+      return socketId;
+    }
+  }
+  return null;
+}
 //------------------------------------------------------------------
 // Save Report
 //------------------------------------------------------------------
@@ -148,21 +174,19 @@ async function saveToDB(report) {
       : report.detailProgress;
 
     const values = {
-      user: report.info.user,
-      ip: report.info.ip,
-      numMES: report.numMES,
-      detailProgress: detailTitles,
-      dateProgress: report.dateProgress,
+      user: report.info.user?.trim() || '',
+      ip: report.info.ip?.trim() || '',
+      userCodeMes: report.info.usercode?.trim() || '',
+      numMES: Number(report.numMES) || 0,
+      detailProgress: detailTitles?.trim() || '',
+      dateProgress: report.dateProgress?.trim() || '',
     };
-
-    const [agent, created] = await Agents.findOrCreate({ where: { ip: values.ip }, defaults: values });
-    if (!created) await agent.update(values);
+    await Agents.upsert(values);
 
   } catch (err) {
-    console.error('❌ Sequelize error:', err.message || err);
+    console.error('Sequelize error (upsert):', err.message || err);
   }
 }
-
 //------------------------------------------------------------------
 // REST API – dynamic query by ?plant=
 //------------------------------------------------------------------
@@ -173,7 +197,7 @@ app.get('/api/mes-agent-report', async (req, res) => {
     const rows = await fetchPlant(plant);
     res.json(rows);
   } catch (err) {
-    console.error('❌ Query lỗi:', err);
+    console.error('Query lỗi:', err);
     res.status(500).json({ message: 'Lỗi truy vấn' });
   }
 });
@@ -183,7 +207,7 @@ app.get('/api/mes-agent-report', async (req, res) => {
 //------------------------------------------------------------------
 app.get('/api/force-all', (_req, res) => {
   io.emit('ping-client', 'force-report');
-  res.send('📡 Đã gửi force-report tới tất cả agents');
+  res.send('Đã gửi force-report tới tất cả agents');
 });
 
 //------------------------------------------------------------------
@@ -191,10 +215,10 @@ app.get('/api/force-all', (_req, res) => {
 //------------------------------------------------------------------
 let online = 0;
 let pollId = null;
-
+const clientMap = {};
 io.on('connection', (socket) => {
   online += 1;
-  console.log('🔌 Client connected', socket.id, '| online:', online);
+  console.log('Client connected', socket.id, '| online:', online);
 
   // ── Send snapshot for each plant to newly‑connected client
   PLANTS.forEach(async (p) => {
@@ -216,27 +240,103 @@ io.on('connection', (socket) => {
         );
       } catch (e) { console.error('poll error', e); }
     }, POLL_MS);
-    console.log('⏱️  Started polling plants every', POLL_MS, 'ms');
+    console.log('Started polling plants every', POLL_MS, 'ms');
   }
 
   // ── Receive single report from agent
   socket.on('mes-report', async (data) => {
     try {
+      //console.log(data)
+      const ip = data?.info?.ip || 'unknown';
+      clientMap[socket.id] = ip;
       await saveToDB(data);
       io.emit('mes-report', data);      // broadcast raw report if UI cần
     } catch (err) {
-      console.error('❌ handle mes-report error:', err);
+      console.error('handle mes-report error:', err);
     }
   });
+  socket.on('restarted', (data) => {
+    const time = new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
+    console.log(`MÁY ĐÃ RESTART: [${data.ip}] - user: ${data.user}, usercode: ${data.usercode} @ ${time}`);
+  });
+  socket.on("screenshot", (data) => {
+    //console.log(`Nhận ảnh từ ${data.machine}`);
+    io.emit("update-image", data); // gửi cho tất cả client 
+  });
+  socket.on("request-capture", async (data) => {
+    const value = data.ipOrLine?.trim();
+    if (!value) {
+      //console.log("❌ Không có giá trị ipOrLine gửi lên.");
+      return;
+    }
 
+    try {
+      // Tìm trong bảng Lines theo IP hoặc line_code hoặc line_name
+      const line = await Lines.findOne({
+        where: {
+          [Sequelize.Op.or]: [
+            { ip: value },
+            { line_code: value },
+            { line_name: value }
+          ]
+        }
+      });
+
+
+      if (!line) {
+        console.log("❌ Không tìm thấy dòng tương ứng với:", value);
+        return;
+      }
+
+      const ip = line.ip;
+      //console.log("Tìm thấy dòng:", ip);
+      //console.log("clientMap:", clientMap);
+      const targetSocketId = getSocketIdFromIP(ip);
+
+      if (!targetSocketId) {
+        console.log("❌ Không tìm thấy socket đang online với IP:", ip);
+        return;
+      }
+
+      // Gửi yêu cầu capture đến máy client cụ thể
+      io.to(targetSocketId).emit("capture-now");
+      //console.log(`✅ Đã gửi 'capture-now' đến ${ip} (socketId: ${targetSocketId})`);
+
+    } catch (error) {
+      console.error("🔥 Lỗi truy vấn Line:", error);
+    }
+  });
   // ── Disconnect
-  socket.on('disconnect', () => {
+  socket.on('disconnect', async () => {
     online -= 1;
-    console.log('🔌 Client disconnected', socket.id, '| online:', online);
+
+    const ip = clientMap[socket.id] || 'Unknown';
+    console.log('Client disconnected', socket.id, '| IP:', ip, '| online:', online);
+
+    if (ip && ip !== 'Unknown') {
+      const values = {
+        ip: ip,
+        numMES: 0,
+        detailProgress: '',
+      };
+      try {
+        //await Agents.upsert(values);
+        const [affected] = await Agents.update(
+          { numMES: 0, detailProgress: '' },   // Dữ liệu cập nhật
+          { where: { ip } }                    // Điều kiện WHERE
+        );
+
+      } catch (err) {
+        console.error('❌ Lỗi khi upsert Agents:', err);
+      }
+    }
+
+    delete clientMap[socket.id];
+
     if (online === 0 && pollId) {
       clearInterval(pollId);
       pollId = null;
-      console.log('🛑  Stopped polling (no clients)');
+      console.log('Stopped polling (no clients)');
     }
   });
 });
@@ -260,7 +360,7 @@ cron.schedule('0 20 * * *', async () => {
   try {
     await sequelize.sync();
     console.log('✅ MySQL synced');
-    server.listen(PORT, () => console.log(`🚀 MES Agent server @ http://localhost:${PORT}`));
+    server.listen(PORT, () => console.log(`🚀 MES Agent server @ http://10.30.3.50:${PORT}`));
   } catch (err) {
     console.error('❌ Cannot connect DB:', err);
     process.exit(1);
