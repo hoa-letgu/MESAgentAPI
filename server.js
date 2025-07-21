@@ -88,7 +88,7 @@ app.post('/addLines2', async (req, res) => {
     res.status(500).json({ error: 'NO' });
   }
 });
-
+const clientMap = {};
 
 app.post('/addLines', async (req, res) => {
   let { plant_id, line, ip } = req.body;
@@ -156,6 +156,42 @@ async function fetchPlant(plantName) {
   const [rows] = await sequelize.query(sqlForPlant(plantName), { replacements: { plantName } });
   return rows;
 }
+function reverseClientMap(map) {
+  const reversed = {};
+  for (const [socketId, ip] of Object.entries(map)) {
+    reversed[ip] = socketId;
+  }
+  return reversed;
+}
+
+async function getAllIPWithSocket() {
+  const sql = `
+    SELECT 
+      a.ip,
+      CASE 
+        WHEN b.plant_id = 'OF' OR b.line_name IS NULL THEN a.ip
+        ELSE b.line_name
+      END AS line_name
+    FROM 
+      aph_mes_monitor.agents a
+    LEFT JOIN 
+      aph_mes_monitor.lines b 
+    ON 
+      a.ip = b.ip;
+  `;
+  const [rows] = await sequelize.query(sql, {});
+
+  const ipToSocketMap = reverseClientMap(clientMap); // ip => socketId
+
+  const result = rows.map(row => ({
+    ip: row.ip,
+    line_name: row.line_name,
+    socket_id: ipToSocketMap[row.ip] || null
+  }));
+
+  return result;
+}
+
 function getSocketIdFromIP(ip) {
   for (const [socketId, clientIP] of Object.entries(clientMap)) {
     if (clientIP === ip) {
@@ -188,7 +224,14 @@ async function saveToDB(report) {
       detailProgress: detailTitles?.trim() || '',
       dateProgress: report.dateProgress?.trim() || '',
     };
-    await Agents.upsert(values);
+    const [agent, created] = await Agents.findOrCreate({
+      where: { ip },
+      defaults: values,
+    });
+
+    if (!created) {
+      await agent.update(values);
+    }
 
   } catch (err) {
     console.error('Sequelize error (upsert):', err.message || err);
@@ -222,7 +265,7 @@ app.get('/api/force-all', (_req, res) => {
 //------------------------------------------------------------------
 let online = 0;
 let pollId = null;
-const clientMap = {};
+
 io.on('connection', (socket) => {
   online += 1;
   console.log('Client connected', socket.id, '| online:', online);
@@ -249,6 +292,14 @@ io.on('connection', (socket) => {
     }, POLL_MS);
     console.log('Started polling plants every', POLL_MS, 'ms');
   }
+  socket.on('get-IP', async (data) => {
+    try {
+      const list_ip = await getAllIPWithSocket(); // <- thêm await
+      io.emit('send-list-ip', list_ip); // hoặc socket.emit nếu muốn gửi riêng
+    } catch (err) {
+      console.error('🔥 Lỗi khi xử lý get-IP:', err);
+    }
+  });
 
   // ── Receive single report from agent
   socket.on('mes-report', async (data) => {
@@ -353,8 +404,8 @@ io.on('connection', (socket) => {
 //------------------------------------------------------------------
 cron.schedule('0 20 * * *', async () => {
   try {
-    const [affected] = await Agents.update({ numMES: 0 }, { where: {} });
-    console.log(`🔄 [${dayjs().format('YYYY-MM-DD HH:mm:ss')}] Reset numMES = 0 cho ${affected} agent(s)`);
+    //const [affected] = await Agents.update({ numMES: 0 }, { where: {} });
+    //console.log(`[${dayjs().format('YYYY-MM-DD HH:mm:ss')}] Reset numMES = 0 cho ${affected} agent(s)`);
   } catch (err) {
     console.error('❌ Cron update lỗi:', err);
   }
